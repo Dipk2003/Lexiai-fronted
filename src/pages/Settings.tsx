@@ -16,6 +16,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import { Save as SaveIcon } from '@mui/icons-material';
+import { apiService } from '../services/api';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState({
@@ -54,9 +55,11 @@ const Settings: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      // TODO: Implement API call to save settings
-      setSuccessMessage('Settings saved successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      const response = await apiService.updateSettings(settings);
+      if (response) {
+        setSuccessMessage('Settings saved successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
     } catch (error) {
       console.error('Error saving settings:', error);
     }

@@ -131,15 +131,148 @@ class ApiService {
     throw new Error(response.data.message);
   }
 
-  // Case Research Endpoints
-  async searchCases(query: SearchQuery): Promise<SearchResult> {
-    const response: AxiosResponse<ApiResponse<SearchResult>> = 
-      await this.api.post('/research/search', query);
+  // User Case Management Endpoints
+  async getUserCases(params?: any): Promise<any[]> {
+    const response = await this.api.get('/cases', { params });
+    return response.data;
+  }
+
+  async getUserCaseById(id: string): Promise<any> {
+    const response = await this.api.get(`/cases/${id}`);
+    return response.data;
+  }
+
+  async createUserCase(caseData: any): Promise<any> {
+    const response = await this.api.post('/cases', caseData);
+    return response.data;
+  }
+
+  async updateUserCase(id: string, caseData: any): Promise<any> {
+    const response = await this.api.put(`/cases/${id}`, caseData);
+    return response.data;
+  }
+
+  async deleteUserCase(id: string): Promise<void> {
+    await this.api.delete(`/cases/${id}`);
+  }
+
+  async archiveUserCase(id: string): Promise<any> {
+    const response = await this.api.patch(`/cases/${id}/archive`);
+    return response.data;
+  }
+
+  async updateCaseStatus(id: string, status: string): Promise<any> {
+    const response = await this.api.patch(`/cases/${id}/status?status=${status}`);
+    return response.data;
+  }
+
+  async searchUserCases(keyword: string): Promise<any[]> {
+    const response = await this.api.get(`/cases/search?keyword=${keyword}`);
+    return response.data;
+  }
+
+  async getUpcomingHearings(startDate?: string, endDate?: string): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
     
-    if (response.data.success) {
-      return response.data.data;
-    }
-    throw new Error(response.data.message);
+    const response = await this.api.get(`/cases/upcoming-hearings?${params.toString()}`);
+    return response.data;
+  }
+
+  async getCaseStatistics(): Promise<any> {
+    const response = await this.api.get('/cases/statistics');
+    return response.data;
+  }
+
+  async getFirmCases(): Promise<any[]> {
+    const response = await this.api.get('/cases/firm');
+    return response.data;
+  }
+
+  async getFirmCaseStatistics(): Promise<any> {
+    const response = await this.api.get('/cases/firm/statistics');
+    return response.data;
+  }
+
+  // Document Management Endpoints
+  async getDocumentsByCase(caseId: string): Promise<any[]> {
+    const response = await this.api.get(`/documents/case/${caseId}`);
+    return response.data;
+  }
+
+  async getDocumentById(id: string): Promise<any> {
+    const response = await this.api.get(`/documents/${id}`);
+    return response.data;
+  }
+
+  async uploadDocument(file: File, caseId: string, metadata: any): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('caseId', caseId);
+    
+    if (metadata.name) formData.append('name', metadata.name);
+    if (metadata.description) formData.append('description', metadata.description);
+    if (metadata.documentType) formData.append('documentType', metadata.documentType);
+    if (metadata.accessLevel) formData.append('accessLevel', metadata.accessLevel);
+    if (metadata.tags) formData.append('tags', metadata.tags);
+    
+    const response = await this.api.post('/documents/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  }
+
+  async updateDocument(id: string, metadata: any): Promise<any> {
+    const response = await this.api.put(`/documents/${id}`, metadata);
+    return response.data;
+  }
+
+  async deleteDocument(id: string): Promise<void> {
+    await this.api.delete(`/documents/${id}`);
+  }
+
+  async downloadDocument(id: string): Promise<Blob> {
+    const response = await this.api.get(`/documents/${id}/download`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  }
+
+  async searchDocuments(keyword: string, caseId?: string): Promise<any[]> {
+    const params = new URLSearchParams({ keyword });
+    if (caseId) params.append('caseId', caseId);
+    
+    const response = await this.api.get(`/documents/search?${params.toString()}`);
+    return response.data;
+  }
+
+  async getAllLawyerDocuments(): Promise<any[]> {
+    const response = await this.api.get('/documents/lawyer/all');
+    return response.data;
+  }
+
+  async getFirmWideDocuments(): Promise<any[]> {
+    const response = await this.api.get('/documents/firm/shared');
+    return response.data;
+  }
+
+  async updateDocumentAccessLevel(id: string, accessLevel: string): Promise<any> {
+    const response = await this.api.patch(`/documents/${id}/access-level?accessLevel=${accessLevel}`);
+    return response.data;
+  }
+
+  async getDocumentStatistics(): Promise<any> {
+    const response = await this.api.get('/documents/statistics');
+    return response.data;
+  }
+
+  // Case Research Endpoints
+  async searchCases(query: any): Promise<any> {
+    const response = await this.api.post('/search/cases', query);
+    return response.data;
   }
 
   async getCaseById(id: string): Promise<CaseDocument> {
@@ -243,13 +376,16 @@ class ApiService {
     throw new Error(response.data.message);
   }
 
-  async updateSettings(settings: SettingsForm): Promise<void> {
-    const response: AxiosResponse<ApiResponse<void>> = 
-      await this.api.patch('/users/settings', settings);
+  async updateSettings(settings: any): Promise<void> {
+    const response: AxiosResponse<string> = 
+      await this.api.post('/user/settings', settings);
     
-    if (!response.data.success) {
-      throw new Error(response.data.message);
-    }
+    return response.data;
+  }
+
+  async getSettings(): Promise<any> {
+    const response = await this.api.get('/user/settings');
+    return response.data;
   }
 
   async uploadAvatar(file: File): Promise<string> {
@@ -288,6 +424,36 @@ class ApiService {
       return response.data.data;
     }
     throw new Error(response.data.message);
+  }
+
+  // Admin Endpoints
+  async getAdminStats(): Promise<any> {
+    const response = await this.api.get('/admin/dashboard/stats');
+    return response.data;
+  }
+
+  async getSearchVolume(days: number = 7): Promise<any[]> {
+    const response = await this.api.get(`/admin/analytics/search-volume?days=${days}`);
+    return response.data;
+  }
+
+  async getCourtDistribution(): Promise<any[]> {
+    const response = await this.api.get('/admin/analytics/court-distribution');
+    return response.data;
+  }
+
+  async getAdminUsers(page: number = 0, size: number = 50): Promise<any[]> {
+    const response = await this.api.get(`/admin/users?page=${page}&size=${size}`);
+    return response.data;
+  }
+
+  async toggleUserStatus(userId: string): Promise<void> {
+    await this.api.post(`/admin/users/${userId}/toggle-status`);
+  }
+
+  async getSystemLogs(limit: number = 100): Promise<any[]> {
+    const response = await this.api.get(`/admin/system/logs?limit=${limit}`);
+    return response.data;
   }
 
   // Health Check

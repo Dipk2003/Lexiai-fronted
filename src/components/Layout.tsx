@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+interface LayoutProps {
+  children: React.ReactNode;
+}
 import {
   AppBar,
   Box,
@@ -51,7 +55,7 @@ const navigationItems: NavigationItem[] = [
   },
 ];
 
-const Layout: React.FC = () => {
+const Layout: React.FC<LayoutProps> = ({ children }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, logout } = useAuth();
@@ -225,7 +229,7 @@ const Layout: React.FC = () => {
         }}
       >
         <Toolbar />
-        <Outlet />
+        {children}
       </Box>
 
       {/* User Menu */}

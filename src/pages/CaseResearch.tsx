@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { apiService } from '../services/api';
 import {
   Box,
   Grid,
@@ -37,55 +39,19 @@ import {
   ExpandMore as ExpandMoreIcon,
   DateRange as DateRangeIcon,
   Clear as ClearIcon,
+  Psychology,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 
-// Mock data for demonstration
-const mockResults = [
-  {
-    id: '1',
-    title: 'Smith v. Johnson Manufacturing Inc.',
-    court: 'Superior Court of California',
-    date: '2023-12-15',
-    judges: ['Judge Sarah Williams', 'Judge Robert Chen'],
-    summary: 'A landmark case involving breach of contract and damages in manufacturing agreements. The court ruled in favor of the plaintiff, establishing important precedent for commercial contract disputes.',
-    citation: '2023 Cal. Super. 1234',
-    relevanceScore: 95,
-    category: 'Contract Law',
-    tags: ['Breach of Contract', 'Manufacturing', 'Damages', 'Commercial Law'],
-  },
-  {
-    id: '2',
-    title: 'Tech Solutions Corp v. DataFlow Systems',
-    court: 'Federal District Court (Northern District of California)',
-    date: '2023-11-28',
-    judges: ['Judge Michael Thompson'],
-    summary: 'Intellectual property dispute involving software licensing and trade secrets. The court granted preliminary injunction protecting proprietary algorithms.',
-    citation: '2023 N.D. Cal. 5678',
-    relevanceScore: 88,
-    category: 'Intellectual Property',
-    tags: ['Trade Secrets', 'Software', 'Licensing', 'Injunction'],
-  },
-  {
-    id: '3',
-    title: 'Green Energy Partners v. State Regulatory Board',
-    court: 'State Supreme Court',
-    date: '2023-10-20',
-    judges: ['Chief Justice Maria Rodriguez', 'Justice David Park', 'Justice Lisa Chang'],
-    summary: 'Environmental law case challenging renewable energy regulations. Court upheld state authority to regulate green energy projects while protecting private investment.',
-    citation: '2023 State Sup. 9012',
-    relevanceScore: 82,
-    category: 'Environmental Law',
-    tags: ['Environmental Regulation', 'Renewable Energy', 'State Authority'],
-  },
-];
+
 
 const CaseResearch: React.FC = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourt, setSelectedCourt] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('relevance');
-  const [results, setResults] = useState(mockResults);
+  const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -112,11 +78,31 @@ const CaseResearch: React.FC = () => {
 
   const handleSearch = async () => {
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const searchRequest = {
+        query: searchQuery,
+        courtName: selectedCourt === 'All Courts' ? undefined : selectedCourt,
+        caseType: selectedCategory === 'All Categories' ? undefined : selectedCategory,
+        jurisdiction: selectedCourt === 'All Courts' ? undefined : selectedCourt,
+        searchType: 'keyword',
+        page: currentPage - 1,
+        size: 10
+      };
+      
+      console.log('Searching with filters:', searchRequest);
+      const response = await apiService.searchCases(searchRequest);
+      
+      if (response && response.cases) {
+        setResults(response.cases);
+      } else {
+        setResults([]);
+      }
+    } catch (error) {
+      console.error('Search failed:', error);
+      setResults([]);
+    } finally {
       setIsLoading(false);
-      // In real implementation, this would call the API with search parameters
-    }, 1500);
+    }
   };
 
   const handleClearFilters = () => {
@@ -297,20 +283,30 @@ const CaseResearch: React.FC = () => {
                       </Typography>
                       <Box display="flex" alignItems="center" gap={2} mb={1}>
                         <Typography variant="body2" color="text.secondary">
-                          {case_.court}
+                          {case_.courtName || case_.court}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          {format(new Date(case_.date), 'MMM dd, yyyy')}
+                          {case_.decisionDate ? format(new Date(case_.decisionDate), 'MMM dd, yyyy') : 
+                           case_.date ? format(new Date(case_.date), 'MMM dd, yyyy') : 'No date'}
                         </Typography>
                         <Chip 
-                          label={case_.category} 
+                          label={case_.caseType || case_.category || 'Unknown'} 
                           size="small" 
                           color="primary" 
                           variant="outlined"
                         />
+                        {case_.aiEnhanced && (
+                          <Chip 
+                            icon={<Psychology />} 
+                            label="AI Enhanced" 
+                            size="small" 
+                            color="secondary" 
+                            variant="filled"
+                          />
+                        )}
                       </Box>
                       <Typography variant="body2" color="text.secondary" mb={1}>
-                        Citation: {case_.citation}
+                        Citation: {case_.legalCitation || case_.citation || 'No citation'}
                       </Typography>
                     </Box>
                     <Box display="flex" alignItems="center" gap={1}>
@@ -329,14 +325,19 @@ const CaseResearch: React.FC = () => {
                   </Box>
 
                   <Typography variant="body1" paragraph>
-                    {case_.summary}
+                    {case_.caseSummary || case_.summary || case_.description || 'No summary available'}
                   </Typography>
 
                   <Box display="flex" justifyContent="space-between" alignItems="center">
                     <Box display="flex" gap={1} flexWrap="wrap">
-                      {case_.tags.map((tag) => (
-                        <Chip key={tag} label={tag} size="small" variant="outlined" />
-                      ))}
+                      {case_.keywords ? 
+                        case_.keywords.split(',').map((tag, tagIndex) => (
+                          <Chip key={tagIndex} label={tag.trim()} size="small" variant="outlined" />
+                        )) :
+                        case_.tags ? case_.tags.map((tag) => (
+                          <Chip key={tag} label={tag} size="small" variant="outlined" />
+                        )) : null
+                      }
                     </Box>
                     <Box display="flex" gap={1}>
                       <Tooltip title="Save to session">
@@ -349,7 +350,7 @@ const CaseResearch: React.FC = () => {
                           <ShareIcon />
                         </IconButton>
                       </Tooltip>
-                      <Button variant="outlined" size="small">
+                      <Button variant="outlined" size="small" onClick={() => navigate(`/case/${case_.id}`)}>
                         View Full Case
                       </Button>
                     </Box>

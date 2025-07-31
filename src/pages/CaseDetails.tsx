@@ -1,5 +1,6 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import {
   Box,
   Typography,
@@ -12,6 +13,12 @@ import {
   Divider,
   IconButton,
   Tooltip,
+  Alert,
+  LinearProgress,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Skeleton,
 } from '@mui/material';
 import {
   Bookmark as BookmarkIcon,
@@ -19,72 +26,118 @@ import {
   Print as PrintIcon,
   GetApp as DownloadIcon,
   ArrowBack as ArrowBackIcon,
+  ExpandMore as ExpandMoreIcon,
+  Psychology as AIIcon,
+  Gavel as LegalIcon,
+  Lightbulb as InsightIcon,
 } from '@mui/icons-material';
+
+interface LegalCase {
+  id: number;
+  title: string;
+  caseNumber: string;
+  courtName: string;
+  caseType: string;
+  decisionDate: string;
+  filingDate: string;
+  judgeName: string;
+  plaintiff: string;
+  defendant: string;
+  legalCitation: string;
+  jurisdiction: string;
+  caseSummary: string;
+  keyIssues: string;
+  legalPrecedents: string;
+  outcome: string;
+  sourceUrl: string;
+  keywords: string;
+  // GPT Enhanced fields
+  relevanceScore?: number;
+  keyPoints?: string;
+  legalPrinciples?: string;
+  practicalImplications?: string;
+  relatedConcepts?: string;
+  aiEnhanced?: boolean;
+}
 
 const CaseDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [caseData, setCaseData] = useState<LegalCase | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock case data
-  const caseData = {
-    id: '1',
-    title: 'Smith v. Johnson Manufacturing Inc.',
-    court: 'Superior Court of California',
-    date: '2023-12-15',
-    judges: ['Judge Sarah Williams', 'Judge Robert Chen'],
-    citation: '2023 Cal. Super. 1234',
-    category: 'Contract Law',
-    tags: ['Breach of Contract', 'Manufacturing', 'Damages', 'Commercial Law'],
-    summary: 'A landmark case involving breach of contract and damages in manufacturing agreements.',
-    fullText: `
-This case involves a dispute between Smith Industries and Johnson Manufacturing Inc. regarding a breach of contract in their manufacturing agreement dated January 15, 2022.
+  useEffect(() => {
+    const fetchCaseDetails = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('authToken');
+        const response = await axios.get(`http://localhost:8080/api/search/cases/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        setCaseData(response.data);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error fetching case details:', err);
+        setError('Failed to load case details. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-BACKGROUND:
-The plaintiff, Smith Industries, entered into a manufacturing agreement with Johnson Manufacturing Inc. for the production of specialized automotive components. The contract specified delivery schedules, quality standards, and penalty clauses for non-compliance.
+    fetchCaseDetails();
+  }, [id]);
 
-FACTS:
-1. Johnson Manufacturing failed to deliver goods on the agreed schedule
-2. The delivered products did not meet the specified quality standards
-3. Smith Industries suffered significant financial losses due to the breach
-4. Johnson Manufacturing refused to acknowledge the breach or provide remedies
-
-LEGAL ISSUES:
-The court addressed the following key legal issues:
-- Whether Johnson Manufacturing's actions constituted a material breach of contract
-- The appropriate measure of damages for the breach
-- The enforceability of penalty clauses in commercial contracts
-
-HOLDING:
-The court held that Johnson Manufacturing's failure to deliver conforming goods on schedule constituted a material breach of contract. The court awarded Smith Industries compensatory damages totaling $2.3 million, including lost profits and additional costs incurred.
-
-REASONING:
-The court applied the standard contract law principles of material breach and consequential damages. The court noted that in commercial contracts, time is often of the essence, and failure to meet delivery schedules can constitute material breach even if goods are eventually delivered.
-
-SIGNIFICANCE:
-This case establishes important precedent for:
-- Time-sensitive delivery obligations in manufacturing contracts
-- Calculation of consequential damages in commercial disputes
-- Enforceability of penalty clauses versus liquidated damages
-
-The decision reinforces the importance of clear contractual terms and the courts' willingness to award substantial damages for material breaches in commercial relationships.
-    `,
-    similarCases: [
-      { id: '2', title: 'Tech Corp v. Manufacturing Solutions', relevance: 92 },
-      { id: '3', title: 'Global Industries v. Production Partners', relevance: 87 },
-      { id: '4', title: 'Atlantic Manufacturing v. Precision Components', relevance: 84 },
-    ],
+  const handleGoBack = () => {
+    navigate(-1);
   };
+
+  if (loading) {
+    return (
+      <Box>
+        <Skeleton variant="rectangular" height={200} sx={{ mb: 2 }} />
+        <Skeleton variant="rectangular" height={400} />
+      </Box>
+    );
+  }
+
+  if (error || !caseData) {
+    return (
+      <Box>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error || 'Case not found'}
+        </Alert>
+        <Button variant="outlined" onClick={handleGoBack}>
+          Go Back
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box>
       {/* Header */}
       <Paper sx={{ p: 4, mb: 4 }}>
         <Box display="flex" alignItems="center" gap={2} mb={3}>
-          <IconButton>
+          <IconButton onClick={handleGoBack}>
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h4" fontWeight="bold" flex={1}>
             {caseData.title}
           </Typography>
+          {caseData.aiEnhanced && (
+            <Chip 
+              icon={<AIIcon />} 
+              label="AI Enhanced" 
+              color="secondary" 
+              variant="filled"
+            />
+          )}
           <Box display="flex" gap={1}>
             <Tooltip title="Save Case">
               <IconButton>
@@ -110,26 +163,40 @@ The decision reinforces the importance of clear contractual terms and the courts
         <Grid container spacing={2} alignItems="center">
           <Grid item>
             <Typography variant="body1" color="text.secondary">
-              {caseData.court}
+              {caseData.courtName}
             </Typography>
           </Grid>
           <Grid item>
             <Typography variant="body1" color="text.secondary">
-              {caseData.date}
+              {caseData.decisionDate || caseData.filingDate}
             </Typography>
           </Grid>
           <Grid item>
             <Chip 
-              label={caseData.category} 
+              label={caseData.caseType || 'Legal Case'} 
               color="primary" 
               variant="outlined"
             />
           </Grid>
+          {caseData.relevanceScore && (
+            <Grid item>
+              <Chip 
+                label={`Relevance: ${caseData.relevanceScore}%`} 
+                color="info" 
+                variant="outlined"
+              />
+            </Grid>
+          )}
         </Grid>
 
         <Typography variant="body2" color="text.secondary" mt={2}>
-          Citation: {caseData.citation}
+          Case Number: {caseData.caseNumber}
         </Typography>
+        {caseData.legalCitation && (
+          <Typography variant="body2" color="text.secondary">
+            Citation: {caseData.legalCitation}
+          </Typography>
+        )}
       </Paper>
 
       <Grid container spacing={3}>
@@ -141,17 +208,102 @@ The decision reinforces the importance of clear contractual terms and the courts
                 Case Summary
               </Typography>
               <Typography variant="body1" paragraph>
-                {caseData.summary}
+                {caseData.caseSummary}
               </Typography>
+
+              {/* GPT Enhanced Key Points */}
+              {caseData.keyPoints && (
+                <>
+                  <Divider sx={{ my: 3 }} />
+                  <Accordion>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <AIIcon color="secondary" />
+                        <Typography variant="h6">AI-Generated Key Points</Typography>
+                      </Box>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                        {caseData.keyPoints}
+                      </Typography>
+                    </AccordionDetails>
+                  </Accordion>
+                </>
+              )}
+
+              {/* GPT Enhanced Legal Principles */}
+              {caseData.legalPrinciples && (
+                <Accordion>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <LegalIcon color="primary" />
+                      <Typography variant="h6">Legal Principles</Typography>
+                    </Box>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                      {caseData.legalPrinciples}
+                    </Typography>
+                  </AccordionDetails>
+                </Accordion>
+              )}
+
+              {/* GPT Enhanced Practical Implications */}
+              {caseData.practicalImplications && (
+                <Accordion>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <InsightIcon color="warning" />
+                      <Typography variant="h6">Practical Implications</Typography>
+                    </Box>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                      {caseData.practicalImplications}
+                    </Typography>
+                  </AccordionDetails>
+                </Accordion>
+              )}
 
               <Divider sx={{ my: 3 }} />
 
-              <Typography variant="h6" gutterBottom>
-                Full Text
-              </Typography>
-              <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.8 }}>
-                {caseData.fullText}
-              </Typography>
+              {/* Key Issues */}
+              {caseData.keyIssues && (
+                <>
+                  <Typography variant="h6" gutterBottom>
+                    Key Issues
+                  </Typography>
+                  <Typography variant="body1" paragraph sx={{ whiteSpace: 'pre-line' }}>
+                    {caseData.keyIssues}
+                  </Typography>
+                  <Divider sx={{ my: 3 }} />
+                </>
+              )}
+
+              {/* Legal Precedents */}
+              {caseData.legalPrecedents && (
+                <>
+                  <Typography variant="h6" gutterBottom>
+                    Legal Precedents
+                  </Typography>
+                  <Typography variant="body1" paragraph sx={{ whiteSpace: 'pre-line' }}>
+                    {caseData.legalPrecedents}
+                  </Typography>
+                  <Divider sx={{ my: 3 }} />
+                </>
+              )}
+
+              {/* Outcome */}
+              {caseData.outcome && (
+                <>
+                  <Typography variant="h6" gutterBottom>
+                    Outcome
+                  </Typography>
+                  <Typography variant="body1" paragraph sx={{ whiteSpace: 'pre-line' }}>
+                    {caseData.outcome}
+                  </Typography>
+                </>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -165,47 +317,105 @@ The decision reinforces the importance of clear contractual terms and the courts
                 Case Information
               </Typography>
               
-              <Box mb={2}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Judges
-                </Typography>
-                {caseData.judges.map((judge) => (
-                  <Chip key={judge} label={judge} size="small" sx={{ mr: 1, mb: 1 }} />
-                ))}
-              </Box>
-
-              <Box mb={2}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Tags
-                </Typography>
-                <Box display="flex" flexWrap="wrap" gap={1}>
-                  {caseData.tags.map((tag) => (
-                    <Chip key={tag} label={tag} size="small" variant="outlined" />
-                  ))}
+              {caseData.judgeName && (
+                <Box mb={2}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Judge
+                  </Typography>
+                  <Chip label={caseData.judgeName} size="small" sx={{ mr: 1, mb: 1 }} />
                 </Box>
-              </Box>
+              )}
+
+              {(caseData.plaintiff || caseData.defendant) && (
+                <Box mb={2}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Parties
+                  </Typography>
+                  {caseData.plaintiff && (
+                    <Typography variant="body2">
+                      <strong>Plaintiff:</strong> {caseData.plaintiff}
+                    </Typography>
+                  )}
+                  {caseData.defendant && (
+                    <Typography variant="body2">
+                      <strong>Defendant:</strong> {caseData.defendant}
+                    </Typography>
+                  )}
+                </Box>
+              )}
+
+              {caseData.jurisdiction && (
+                <Box mb={2}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Jurisdiction
+                  </Typography>
+                  <Chip label={caseData.jurisdiction} size="small" variant="outlined" />
+                </Box>
+              )}
+
+              {caseData.keywords && (
+                <Box mb={2}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Keywords
+                  </Typography>
+                  <Box display="flex" flexWrap="wrap" gap={1}>
+                    {caseData.keywords.split(',').map((keyword, index) => (
+                      <Chip key={index} label={keyword.trim()} size="small" variant="outlined" />
+                    ))}
+                  </Box>
+                </Box>
+              )}
             </CardContent>
           </Card>
 
-          {/* Similar Cases */}
+          {/* GPT Enhanced Related Concepts */}
+          {caseData.relatedConcepts && (
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Box display="flex" alignItems="center" gap={1} mb={2}>
+                  <AIIcon color="secondary" />
+                  <Typography variant="h6">
+                    Related Concepts
+                  </Typography>
+                </Box>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                  {caseData.relatedConcepts}
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Source Information */}
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Similar Cases
+                Source Information
               </Typography>
-              {caseData.similarCases.map((similarCase) => (
-                <Box key={similarCase.id} mb={2}>
-                  <Typography variant="body2" fontWeight="medium" color="primary">
-                    {similarCase.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Relevance: {similarCase.relevance}%
-                  </Typography>
+              
+              {caseData.sourceUrl && (
+                <Box mb={2}>
+                  <Button 
+                    variant="outlined" 
+                    size="small" 
+                    href={caseData.sourceUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    fullWidth
+                  >
+                    View Original Source
+                  </Button>
                 </Box>
-              ))}
-              <Button size="small" color="primary">
-                View More Similar Cases
-              </Button>
+              )}
+              
+              <Typography variant="body2" color="text.secondary">
+                <strong>Source Type:</strong> {caseData.sourceType || 'Unknown'}
+              </Typography>
+              
+              {caseData.aiEnhanced && (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  This case has been enhanced with AI analysis for better insights and understanding.
+                </Alert>
+              )}
             </CardContent>
           </Card>
         </Grid>

@@ -1,0 +1,64 @@
+
+.lawyer-dashboard {
+  display: flex;
+  font-family: 'Inter', sans-serif;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 220px;
+  background-color: #1e293b;
+  color: white;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 2rem;
+}
+
+.sidebar nav a {
+  color: white;
+  text-decoration: none;
+  margin: 0.5rem 0;
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 2rem;
+  background-color: #f9fafb;
+}
+
+.main-content h2 {
+  margin-bottom: 1rem;
+}
+
+.recent-searches table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.recent-searches th, .recent-searches td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid #ccc;
+}
+
+.quick-search {
+  margin-top: 2rem;
+}
+
+.quick-search input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.top-courts {
+  margin-top: 2rem;
+}
